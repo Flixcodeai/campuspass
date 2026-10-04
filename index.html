@@ -1,0 +1,526 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CampusPass – On-chain tickets for student initiatives</title>
+<meta name="description" content="CampusPass: event tickets for student initiatives, paid with Solana Pay and verified on-chain.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%239945FF'/><text x='50' y='68' font-size='52' text-anchor='middle' fill='white' font-family='Arial' font-weight='bold'>CP</text></svg>">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://unpkg.com/@solana/web3.js@1.95.3/lib/index.iife.min.js"></script>
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<style>
+:root{--bg:#0d0f14;--card:#161a22;--line:#262b36;--text:#eef0f4;--muted:#9aa3b2;--accent:#9945FF;--accent2:#14F195;--bad:#ff5c7a;--warn:#ffc94d;--radius:14px}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+a{color:var(--accent2)}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 20px;border-bottom:1px solid var(--line);position:sticky;top:0;background:rgba(13,15,20,.92);backdrop-filter:blur(8px);z-index:5;flex-wrap:wrap}
+.logo{display:flex;align-items:center;gap:10px;font-weight:700;font-size:18px}
+.logo b{display:inline-grid;place-items:center;width:32px;height:32px;border-radius:9px;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#0d0f14;font-size:13px}
+.net{font-size:12px;padding:3px 8px;border-radius:99px;border:1px solid var(--warn);color:var(--warn)}
+nav{display:flex;gap:6px;flex-wrap:wrap}
+nav button{background:none;border:1px solid transparent;color:var(--muted);padding:8px 12px;border-radius:10px;cursor:pointer;font:inherit}
+nav button.on{color:var(--text);border-color:var(--line);background:var(--card)}
+main{max-width:980px;margin:0 auto;padding:24px 16px 80px}
+.hero{padding:10px 0 18px}
+.hero h1{margin:0 0 6px;font-size:28px;line-height:1.2}
+.hero p{margin:0;color:var(--muted);max-width:640px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:18px}
+.card h3{margin:0 0 4px;font-size:17px}
+.meta{color:var(--muted);font-size:13px}
+.price{font-size:22px;font-weight:700;margin:10px 0}
+.price small{font-size:13px;color:var(--muted);font-weight:400}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:0;border-radius:10px;padding:10px 14px;font:inherit;font-weight:600;cursor:pointer;background:var(--accent);color:#fff}
+.btn.alt{background:transparent;border:1px solid var(--line);color:var(--text)}
+.btn.green{background:var(--accent2);color:#0d0f14}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+input,select,textarea{width:100%;background:#0f1218;border:1px solid var(--line);color:var(--text);border-radius:10px;padding:10px 12px;font:inherit}
+label{display:block;font-size:13px;color:var(--muted);margin:10px 0 4px}
+.hide{display:none!important}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.65);display:grid;place-items:center;padding:16px;z-index:10}
+.modal .card{width:min(460px,100%);max-height:92vh;overflow:auto}
+.qr{background:#fff;padding:12px;border-radius:12px;display:inline-block;margin:12px 0}
+.qr img,.qr canvas{display:block}
+.status{padding:10px 12px;border-radius:10px;background:#0f1218;border:1px solid var(--line);font-size:14px;margin-top:10px}
+.status.ok{border-color:var(--accent2);color:var(--accent2)}
+.status.bad{border-color:var(--bad);color:var(--bad)}
+.status.warn{border-color:var(--warn);color:var(--warn)}
+.ticket{background:linear-gradient(135deg,rgba(153,69,255,.18),rgba(20,241,149,.12));border:1px solid var(--line);border-radius:var(--radius);padding:18px;text-align:center}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;word-break:break-all;color:var(--muted)}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{text-align:left;padding:8px 6px;border-bottom:1px solid var(--line)}
+th{color:var(--muted);font-weight:500}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:14px 0}
+.kpi .v{font-size:24px;font-weight:700}
+.big{font-size:42px;line-height:1}
+.steps{counter-reset:s;list-style:none;padding:0;margin:0}
+.steps li{counter-increment:s;padding:6px 0 6px 34px;position:relative;color:var(--muted)}
+.steps li::before{content:counter(s);position:absolute;left:0;top:6px;width:24px;height:24px;border-radius:50%;background:var(--line);color:var(--text);display:grid;place-items:center;font-size:12px}
+.spin{width:14px;height:14px;border:2px solid var(--muted);border-top-color:transparent;border-radius:50%;animation:sp 1s linear infinite;display:inline-block;vertical-align:-2px}
+@keyframes sp{to{transform:rotate(360deg)}}
+#reader{width:100%;max-width:360px;margin:10px 0}
+footer{color:var(--muted);font-size:12px;text-align:center;padding:30px 16px}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo"><b>CP</b> CampusPass <span class="net">Solana Devnet</span></div>
+  <nav>
+    <button data-tab="events" class="on">Events</button>
+    <button data-tab="tickets">My tickets</button>
+    <button data-tab="checkin">Check-in</button>
+    <button data-tab="org">Organizer</button>
+  </nav>
+</header>
+
+<main>
+  <!-- EVENTS -->
+  <section id="tab-events">
+    <div class="hero">
+      <h1>Event tickets for student initiatives, settled on Solana.</h1>
+      <p>Pay with any Solana wallet via Solana Pay. Your payment <em>is</em> your ticket: verifiable on-chain, impossible to fake, no PayPal fees, no Excel lists.</p>
+    </div>
+    <div id="eventGrid" class="grid"></div>
+    <div class="card" style="margin-top:18px">
+      <h3>How it works</h3>
+      <ol class="steps">
+        <li>Choose an event and scan the Solana Pay QR (Phantom / Solflare mobile) or pay with the Phantom browser extension.</li>
+        <li>The payment carries a unique reference key and an on-chain memo with the event ID.</li>
+        <li>CampusPass finds the transaction on-chain and issues your QR ticket.</li>
+        <li>At the door, the organizer scans the ticket. CampusPass verifies amount, recipient and event directly on the blockchain.</li>
+      </ol>
+      <p class="meta">Need devnet SOL? Use <a href="https://faucet.solana.com" target="_blank" rel="noopener">faucet.solana.com</a>. In Phantom enable Settings → Developer Settings → Testnet Mode (Solana Devnet).</p>
+    </div>
+  </section>
+
+  <!-- MY TICKETS -->
+  <section id="tab-tickets" class="hide">
+    <div class="hero"><h1>My tickets</h1><p>Stored in this browser. Each ticket is backed by an on-chain transaction.</p></div>
+    <div id="ticketList" class="grid"></div>
+    <div class="card" style="margin-top:14px">
+      <h3>Restore a ticket</h3>
+      <p class="meta">Paste the transaction signature of your payment to restore the ticket on any device.</p>
+      <div class="row"><input id="restoreSig" placeholder="Transaction signature"><button class="btn alt" id="restoreBtn">Restore</button></div>
+      <div id="restoreStatus"></div>
+    </div>
+  </section>
+
+  <!-- CHECK-IN -->
+  <section id="tab-checkin" class="hide">
+    <div class="hero"><h1>Door check-in</h1><p>Scan a ticket QR or paste the signature. Verification runs against the Solana blockchain, no database needed.</p></div>
+    <div class="card">
+      <label>Event</label>
+      <select id="ciEvent"></select>
+      <label>Ticket signature</label>
+      <div class="row"><input id="ciSig" placeholder="Scan or paste ticket signature"><button class="btn" id="ciVerify">Verify</button><button class="btn alt" id="ciScan">Scan QR</button></div>
+      <div id="reader" class="hide"></div>
+      <div id="ciResult"></div>
+    </div>
+  </section>
+
+  <!-- ORGANIZER -->
+  <section id="tab-org" class="hide">
+    <div class="hero"><h1>Organizer</h1><p>Create an event in 30 seconds and track sales live from the chain.</p></div>
+    <div class="card">
+      <h3>Live sales dashboard</h3>
+      <div class="row"><select id="dbEvent" style="max-width:360px"></select><button class="btn alt" id="dbLoad">Refresh</button></div>
+      <div class="kpis">
+        <div class="card kpi"><div class="meta">Tickets sold</div><div class="v" id="kSold">–</div></div>
+        <div class="card kpi"><div class="meta">Revenue</div><div class="v" id="kRev">–</div></div>
+        <div class="card kpi"><div class="meta">Capacity left</div><div class="v" id="kCap">–</div></div>
+        <div class="card kpi"><div class="meta">Checked in (this device)</div><div class="v" id="kIn">–</div></div>
+      </div>
+      <div id="dbStatus"></div>
+      <div style="overflow-x:auto"><table><thead><tr><th>Time</th><th>Attendee</th><th>Wallet</th><th>Paid</th><th>Tx</th></tr></thead><tbody id="dbRows"></tbody></table></div>
+    </div>
+
+    <div class="card" style="margin-top:14px">
+      <h3>Create event</h3>
+      <div class="row" style="align-items:flex-end">
+        <div style="flex:2;min-width:220px"><label>Event name</label><input id="ceName" placeholder="Autumn Networking Night"></div>
+        <div style="flex:1;min-width:140px"><label>Initiative / host</label><input id="ceHost" placeholder="WHU Initiative"></div>
+      </div>
+      <div class="row">
+        <div style="flex:1;min-width:150px"><label>Date &amp; time</label><input id="ceDate" type="datetime-local"></div>
+        <div style="flex:1;min-width:150px"><label>Location</label><input id="ceLoc" placeholder="WHU Campus Vallendar"></div>
+      </div>
+      <div class="row">
+        <div style="flex:1;min-width:120px"><label>Price (SOL)</label><input id="cePrice" type="number" step="0.001" min="0.001" value="0.05"></div>
+        <div style="flex:1;min-width:120px"><label>Capacity</label><input id="ceCap" type="number" min="1" value="100"></div>
+      </div>
+      <label>Payout wallet (your Solana address)</label>
+      <div class="row"><input id="ceOrg" placeholder="Wallet address that receives payments" style="flex:1"><button class="btn alt" id="ceUseWallet">Use connected Phantom</button></div>
+      <div class="row" style="margin-top:14px"><button class="btn green" id="ceCreate">Create event</button></div>
+      <div id="ceResult"></div>
+    </div>
+  </section>
+</main>
+
+<!-- BUY MODAL -->
+<div id="buyModal" class="modal hide">
+  <div class="card">
+    <div class="row" style="justify-content:space-between"><h3 id="bmTitle">Buy ticket</h3><button class="btn alt" id="bmClose">✕</button></div>
+    <div id="bmForm">
+      <label>Your name (printed on ticket, stored in on-chain memo)</label>
+      <input id="bmName" placeholder="Max Mustermann" maxlength="40">
+      <div class="row" style="margin-top:14px"><button class="btn" id="bmContinue">Continue to payment</button></div>
+    </div>
+    <div id="bmPay" class="hide" style="text-align:center">
+      <div class="meta">Scan with Phantom or Solflare (devnet)</div>
+      <div class="qr" id="bmQr"></div>
+      <div class="row" style="justify-content:center"><button class="btn" id="bmPhantom">Pay with Phantom extension</button><a class="btn alt" id="bmLink" href="#">Open in wallet</a></div>
+      <div id="bmStatus" class="status"><span class="spin"></span> Waiting for payment on-chain…</div>
+    </div>
+    <div id="bmDone" class="hide"></div>
+  </div>
+</div>
+
+<footer>CampusPass MVP · Built for “Build an MVP with Solana at WHU” · Runs fully client-side on Solana Devnet</footer>
+
+<script>
+/* ===================== Config ===================== */
+const RPC = 'https://api.devnet.solana.com';
+const MEMO_PROGRAM = 'MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr';
+const LAMPORTS = 1e9;
+const DEMO_ORG = 'Hx9Xc2X4ybv2oLtmbomGWMNp7t9ABfpi46gy5KdMd7eG';
+const DEMO_EVENTS = [
+  {id:'whu-net', name:'Autumn Networking Night', host:'WHU Student Initiative', date:'2026-10-23T19:00', loc:'WHU Campus Vallendar', price:0.05, cap:120, org:DEMO_ORG},
+  {id:'whu-pitch', name:'Founders Pitch Evening', host:'WHU Student Initiative', date:'2026-11-06T18:30', loc:'WHU Düsseldorf Campus', price:0.02, cap:60, org:DEMO_ORG},
+  {id:'whu-party', name:'Semester Opening Party', host:'WHU Student Initiative', date:'2026-10-16T21:00', loc:'Koblenz', price:0.08, cap:300, org:DEMO_ORG}
+];
+
+/* ===================== Utils ===================== */
+const $ = id => document.getElementById(id);
+const store = {
+  get(k, d){ try{ const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; }catch(e){ return d; } },
+  set(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
+};
+const B58 = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
+function b58encode(bytes){
+  const d = [];
+  for (const byte of bytes){
+    let c = byte;
+    for (let j = 0; j < d.length; j++){ c += d[j] << 8; d[j] = c % 58; c = (c / 58) | 0; }
+    while (c){ d.push(c % 58); c = (c / 58) | 0; }
+  }
+  let s = '';
+  for (const byte of bytes){ if (byte === 0) s += '1'; else break; }
+  for (let i = d.length - 1; i >= 0; i--) s += B58[d[i]];
+  return s;
+}
+const isAddr = a => /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test((a||'').trim());
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const short = s => s ? s.slice(0,4) + '…' + s.slice(-4) : '';
+const fmtDate = s => { const d = new Date(s); return isNaN(d) ? s : d.toLocaleString('en-GB',{weekday:'short',day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}); };
+const randId = () => b58encode(crypto.getRandomValues(new Uint8Array(5))).slice(0,6).toLowerCase();
+const explorer = sig => `https://explorer.solana.com/tx/${sig}?cluster=devnet`;
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+function status(el, cls, html){ el.innerHTML = `<div class="status ${cls}">${html}</div>`; }
+
+async function rpc(method, params){
+  const r = await fetch(RPC, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({jsonrpc:'2.0', id:1, method, params})});
+  const j = await r.json();
+  if (j.error) throw new Error(j.error.message || 'RPC error');
+  return j.result;
+}
+const getTx = sig => rpc('getTransaction', [sig, {encoding:'jsonParsed', maxSupportedTransactionVersion:0, commitment:'confirmed'}]);
+
+/* ===================== Events ===================== */
+function decodeShared(){
+  const m = location.hash.match(/e=([A-Za-z0-9_\-]+)/);
+  if (!m) return null;
+  try{
+    const json = decodeURIComponent(escape(atob(m[1].replace(/-/g,'+').replace(/_/g,'/'))));
+    const ev = JSON.parse(json);
+    if (ev && ev.id && isAddr(ev.org)) return ev;
+  }catch(e){}
+  return null;
+}
+function encodeShared(ev){
+  return btoa(unescape(encodeURIComponent(JSON.stringify(ev)))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+}
+function allEvents(){
+  const own = store.get('cp_events', []);
+  const shared = decodeShared();
+  const list = [...own];
+  if (shared && !list.find(e => e.id === shared.id)) { list.unshift(shared); own.unshift(shared); store.set('cp_events', own); }
+  return [...list, ...DEMO_EVENTS];
+}
+const findEvent = id => allEvents().find(e => e.id === id);
+
+function renderEvents(){
+  const evs = allEvents();
+  $('eventGrid').innerHTML = evs.map(e => `
+    <div class="card">
+      <div class="meta">${esc(e.host)}</div>
+      <h3>${esc(e.name)}</h3>
+      <div class="meta">${esc(fmtDate(e.date))} · ${esc(e.loc)}</div>
+      <div class="price">${e.price} SOL <small>· ${e.cap} spots</small></div>
+      <button class="btn" onclick="openBuy('${esc(e.id)}')">Get ticket</button>
+    </div>`).join('');
+  const opts = evs.map(e => `<option value="${esc(e.id)}">${esc(e.name)} (${esc(e.id)})</option>`).join('');
+  $('ciEvent').innerHTML = opts; $('dbEvent').innerHTML = opts;
+}
+
+/* ===================== Ticket parsing / verification ===================== */
+function extractMemo(tx){
+  const ixs = [...(tx.transaction.message.instructions || [])];
+  (tx.meta.innerInstructions || []).forEach(ii => ixs.push(...ii.instructions));
+  for (const ix of ixs){
+    if (ix.programId === MEMO_PROGRAM || ix.program === 'spl-memo'){
+      if (typeof ix.parsed === 'string') return ix.parsed;
+    }
+  }
+  for (const l of (tx.meta.logMessages || [])){
+    const m = l.match(/Memo \(len \d+\): "(.*)"$/);
+    if (m) return m[1];
+  }
+  return '';
+}
+// memo format: CP1|<eventId>|<attendee name>
+function parseTicket(tx, sig){
+  if (!tx) return {ok:false, reason:'Transaction not found (yet). Wait a few seconds and retry.'};
+  if (tx.meta && tx.meta.err) return {ok:false, reason:'Transaction failed on-chain.'};
+  const memo = extractMemo(tx);
+  const parts = memo.split('|');
+  if (parts[0] !== 'CP1' || !parts[1]) return {ok:false, reason:'Not a CampusPass ticket (memo missing).'};
+  const ev = findEvent(parts[1]);
+  const keys = tx.transaction.message.accountKeys.map(k => typeof k === 'string' ? k : k.pubkey);
+  const t = {sig, eventId:parts[1], name:parts.slice(2).join('|') || 'Guest', payer:keys[0], time: tx.blockTime ? tx.blockTime*1000 : Date.now(), paid:0, ev};
+  if (!ev) return {ok:false, reason:`Ticket belongs to unknown event "${parts[1]}". Open the event link first.`, ticket:t};
+  const i = keys.indexOf(ev.org);
+  if (i < 0) return {ok:false, reason:'Payment did not go to the organizer wallet.', ticket:t};
+  t.paid = (tx.meta.postBalances[i] - tx.meta.preBalances[i]) / LAMPORTS;
+  if (t.paid + 1e-9 < ev.price) return {ok:false, reason:`Underpaid: ${t.paid} SOL received, ${ev.price} SOL required.`, ticket:t};
+  return {ok:true, ticket:t};
+}
+
+/* ===================== Buy flow ===================== */
+let buy = null;
+function openBuy(id){
+  const ev = findEvent(id);
+  buy = {ev, ref:null, stop:false};
+  $('bmTitle').textContent = ev.name;
+  $('bmForm').classList.remove('hide'); $('bmPay').classList.add('hide'); $('bmDone').classList.add('hide');
+  $('bmName').value = store.get('cp_name', '');
+  $('buyModal').classList.remove('hide');
+}
+function closeBuy(){ if (buy) buy.stop = true; $('buyModal').classList.add('hide'); }
+
+function startPayment(){
+  const name = ($('bmName').value.trim() || 'Guest').replace(/\|/g,' ').slice(0,40);
+  store.set('cp_name', name);
+  const ev = buy.ev;
+  buy.name = name;
+  buy.ref = b58encode(crypto.getRandomValues(new Uint8Array(32)));
+  buy.memo = `CP1|${ev.id}|${name}`;
+  const url = `solana:${ev.org}?amount=${ev.price}&reference=${buy.ref}&label=${encodeURIComponent('CampusPass')}&message=${encodeURIComponent(ev.name)}&memo=${encodeURIComponent(buy.memo)}`;
+  $('bmForm').classList.add('hide'); $('bmPay').classList.remove('hide');
+  $('bmQr').innerHTML = '';
+  new QRCode($('bmQr'), {text:url, width:240, height:240, correctLevel: QRCode.CorrectLevel.L});
+  $('bmLink').href = url;
+  $('bmStatus').className = 'status';
+  $('bmStatus').innerHTML = '<span class="spin"></span> Waiting for payment on-chain…';
+  pollReference(buy);
+}
+
+async function pollReference(b){
+  while (!b.stop){
+    try{
+      const sigs = await rpc('getSignaturesForAddress', [b.ref, {limit:1, commitment:'confirmed'}]);
+      if (sigs && sigs.length){
+        const sig = sigs[0].signature;
+        $('bmStatus').innerHTML = '<span class="spin"></span> Payment found, verifying…';
+        let tx = null;
+        for (let i = 0; i < 10 && !tx; i++){ tx = await getTx(sig); if (!tx) await sleep(1500); }
+        const res = parseTicket(tx, sig);
+        if (res.ok){ issueTicket(res.ticket); return; }
+        $('bmStatus').className = 'status bad'; $('bmStatus').textContent = res.reason; return;
+      }
+    }catch(e){ console.warn(e); }
+    await sleep(2500);
+  }
+}
+
+async function payWithPhantom(){
+  const provider = window.phantom?.solana || window.solana;
+  if (!provider) { window.open('https://phantom.app/', '_blank'); return; }
+  if (!window.solanaWeb3) { alertStatus('Solana library failed to load. Use the QR code instead.'); return; }
+  const W = window.solanaWeb3;
+  try{
+    $('bmPhantom').disabled = true;
+    const {publicKey} = await provider.connect();
+    const conn = new W.Connection(RPC, 'confirmed');
+    const ev = buy.ev;
+    const transfer = W.SystemProgram.transfer({fromPubkey: publicKey, toPubkey: new W.PublicKey(ev.org), lamports: Math.round(ev.price * LAMPORTS)});
+    transfer.keys.push({pubkey: new W.PublicKey(buy.ref), isSigner:false, isWritable:false});
+    const memoIx = new W.TransactionInstruction({programId: new W.PublicKey(MEMO_PROGRAM), keys: [], data: new TextEncoder().encode(buy.memo)});
+    const tx = new W.Transaction().add(transfer, memoIx);
+    tx.feePayer = publicKey;
+    tx.recentBlockhash = (await conn.getLatestBlockhash('confirmed')).blockhash;
+    const signed = await provider.signTransaction(tx);
+    // always submit to devnet, independent of the wallet's network setting
+    const sig = await conn.sendRawTransaction(signed.serialize());
+    $('bmStatus').innerHTML = `<span class="spin"></span> Sent <a href="${explorer(sig)}" target="_blank">${short(sig)}</a>, confirming…`;
+  }catch(e){
+    alertStatus('Phantom: ' + (e.message || e) + ' – need devnet SOL? faucet.solana.com');
+  }finally{ $('bmPhantom').disabled = false; }
+}
+function alertStatus(msg){ $('bmStatus').className = 'status warn'; $('bmStatus').textContent = msg; }
+
+function ticketCard(t, withQr){
+  const ev = t.ev || findEvent(t.eventId) || {name:t.eventId, date:'', loc:''};
+  const qid = 'q' + t.sig.slice(0,10);
+  return `<div class="ticket">
+    <div class="meta">${esc(ev.host || '')}</div>
+    <h3>${esc(ev.name)}</h3>
+    <div class="meta">${esc(fmtDate(ev.date))} · ${esc(ev.loc || '')}</div>
+    <div style="font-weight:700;margin-top:8px">${esc(t.name)}</div>
+    ${withQr ? `<div class="qr" id="${qid}"></div>` : ''}
+    <div class="mono">${esc(t.sig)}</div>
+    <div style="margin-top:8px"><a href="${explorer(t.sig)}" target="_blank" rel="noopener">View on Solana Explorer ↗</a></div>
+  </div>`;
+}
+function drawQr(t){ const el = $('q' + t.sig.slice(0,10)); if (el && !el.innerHTML) new QRCode(el, {text:t.sig, width:180, height:180, correctLevel: QRCode.CorrectLevel.M}); }
+
+function saveTicket(t){
+  const list = store.get('cp_tickets', []);
+  if (!list.find(x => x.sig === t.sig)) list.unshift({sig:t.sig, eventId:t.eventId, name:t.name, payer:t.payer, time:t.time});
+  store.set('cp_tickets', list);
+}
+function issueTicket(t){
+  saveTicket(t);
+  $('bmPay').classList.add('hide');
+  $('bmDone').classList.remove('hide');
+  $('bmDone').innerHTML = `<div class="status ok">Payment verified on-chain. Here is your ticket.</div><div style="margin-top:12px">${ticketCard(t, true)}</div>
+    <div class="row" style="margin-top:12px;justify-content:center"><button class="btn alt" onclick="closeBuy();show('tickets')">Go to my tickets</button></div>`;
+  drawQr(t);
+}
+
+function renderTickets(){
+  const list = store.get('cp_tickets', []);
+  if (!list.length){ $('ticketList').innerHTML = '<div class="card meta">No tickets yet. Buy one under Events.</div>'; return; }
+  $('ticketList').innerHTML = list.map(t => ticketCard(t, true)).join('');
+  list.forEach(drawQr);
+}
+
+/* ===================== Check-in ===================== */
+async function verifyTicket(){
+  const sig = $('ciSig').value.trim().replace(/^.*tx\//,'').split('?')[0];
+  const evId = $('ciEvent').value;
+  if (!sig) return;
+  status($('ciResult'), '', '<span class="spin"></span> Verifying on Solana…');
+  try{
+    const res = parseTicket(await getTx(sig), sig);
+    if (!res.ok){ status($('ciResult'), 'bad', `<div class="big">✕</div><b>INVALID</b><br>${esc(res.reason)}`); return; }
+    const t = res.ticket;
+    if (t.eventId !== evId){ status($('ciResult'), 'bad', `<div class="big">✕</div><b>WRONG EVENT</b><br>Ticket is for "${esc(t.ev.name)}".`); return; }
+    const used = store.get('cp_checkins', {});
+    if (used[sig]){ status($('ciResult'), 'warn', `<div class="big">!</div><b>ALREADY CHECKED IN</b><br>${esc(t.name)} · at ${new Date(used[sig]).toLocaleTimeString()}`); return; }
+    status($('ciResult'), 'ok', `<div class="big">✓</div><b>VALID TICKET</b><br>${esc(t.name)} · paid ${t.paid} SOL · wallet ${short(t.payer)}<br>
+      <button class="btn green" style="margin-top:10px" onclick="admit('${sig}')">Admit &amp; mark as used</button>`);
+  }catch(e){ status($('ciResult'), 'bad', 'RPC error: ' + esc(e.message)); }
+}
+function admit(sig){
+  const used = store.get('cp_checkins', {}); used[sig] = Date.now(); store.set('cp_checkins', used);
+  status($('ciResult'), 'ok', '<div class="big">✓</div><b>ADMITTED</b>'); $('ciSig').value = '';
+}
+let scanner = null;
+async function toggleScan(){
+  if (scanner){ try{ await scanner.stop(); }catch(e){} scanner = null; $('reader').classList.add('hide'); $('ciScan').textContent = 'Scan QR'; return; }
+  if (!window.Html5Qrcode){ status($('ciResult'), 'warn', 'Scanner library not loaded. Paste the signature instead.'); return; }
+  $('reader').classList.remove('hide'); $('ciScan').textContent = 'Stop scan';
+  scanner = new Html5Qrcode('reader');
+  try{
+    await scanner.start({facingMode:'environment'}, {fps:10, qrbox:220}, txt => { $('ciSig').value = txt; toggleScan(); verifyTicket(); });
+  }catch(e){ status($('ciResult'), 'warn', 'Camera not available: ' + esc(e.message || e)); scanner = null; $('reader').classList.add('hide'); $('ciScan').textContent = 'Scan QR'; }
+}
+
+/* ===================== Organizer dashboard ===================== */
+async function loadDashboard(){
+  const ev = findEvent($('dbEvent').value); if (!ev) return;
+  status($('dbStatus'), '', '<span class="spin"></span> Reading sales from Solana…');
+  $('dbRows').innerHTML = '';
+  try{
+    const sigs = await rpc('getSignaturesForAddress', [ev.org, {limit:40, commitment:'confirmed'}]);
+    const rows = [];
+    for (const s of sigs){
+      if (s.err) continue;
+      if (s.memo && !s.memo.includes('CP1|' + ev.id + '|')) continue; // fast filter using RPC memo field
+      const res = parseTicket(await getTx(s.signature), s.signature);
+      if (res.ok && res.ticket.eventId === ev.id) rows.push(res.ticket);
+      await sleep(120);
+    }
+    const used = store.get('cp_checkins', {});
+    const rev = rows.reduce((a, t) => a + t.paid, 0);
+    $('kSold').textContent = rows.length;
+    $('kRev').textContent = rev.toFixed(3) + ' SOL';
+    $('kCap').textContent = Math.max(0, ev.cap - rows.length);
+    $('kIn').textContent = rows.filter(t => used[t.sig]).length;
+    $('dbRows').innerHTML = rows.map(t => `<tr><td>${new Date(t.time).toLocaleString('en-GB',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}</td><td>${esc(t.name)}</td><td class="mono">${short(t.payer)}</td><td>${t.paid} SOL</td><td><a href="${explorer(t.sig)}" target="_blank">${short(t.sig)}</a></td></tr>`).join('') || '<tr><td colspan="5" class="meta">No sales yet.</td></tr>';
+    $('dbStatus').innerHTML = `<div class="meta">Payout wallet: <span class="mono">${esc(ev.org)}</span> · last 40 transactions scanned</div>`;
+  }catch(e){ status($('dbStatus'), 'bad', 'RPC error: ' + esc(e.message)); }
+}
+
+function createEvent(){
+  const ev = {
+    id: randId(),
+    name: $('ceName').value.trim(),
+    host: $('ceHost').value.trim() || 'Student Initiative',
+    date: $('ceDate').value,
+    loc: $('ceLoc').value.trim() || 'TBA',
+    price: Math.max(0.001, parseFloat($('cePrice').value) || 0.05),
+    cap: Math.max(1, parseInt($('ceCap').value) || 100),
+    org: $('ceOrg').value.trim()
+  };
+  if (!ev.name) return status($('ceResult'), 'bad', 'Please enter an event name.');
+  if (!isAddr(ev.org)) return status($('ceResult'), 'bad', 'Please enter a valid Solana wallet address.');
+  const own = store.get('cp_events', []); own.unshift(ev); store.set('cp_events', own);
+  const link = location.origin + location.pathname + '#e=' + encodeShared(ev);
+  renderEvents();
+  status($('ceResult'), 'ok', `Event created (ID <b>${ev.id}</b>). Share this link to sell tickets:<br><input readonly value="${esc(link)}" onclick="this.select()" style="margin-top:8px">`);
+}
+async function useWallet(){
+  const p = window.phantom?.solana || window.solana;
+  if (!p) return window.open('https://phantom.app/', '_blank');
+  try{ const {publicKey} = await p.connect(); $('ceOrg').value = publicKey.toString(); }catch(e){}
+}
+
+/* ===================== Restore ===================== */
+async function restoreTicket(){
+  const sig = $('restoreSig').value.trim();
+  if (!sig) return;
+  status($('restoreStatus'), '', '<span class="spin"></span> Looking up…');
+  try{
+    const res = parseTicket(await getTx(sig), sig);
+    if (!res.ok) return status($('restoreStatus'), 'bad', esc(res.reason));
+    saveTicket(res.ticket); renderTickets(); status($('restoreStatus'), 'ok', 'Ticket restored.');
+  }catch(e){ status($('restoreStatus'), 'bad', esc(e.message)); }
+}
+
+/* ===================== Nav / init ===================== */
+function show(tab){
+  document.querySelectorAll('nav button').forEach(b => b.classList.toggle('on', b.dataset.tab === tab));
+  document.querySelectorAll('main > section').forEach(s => s.classList.toggle('hide', s.id !== 'tab-' + tab));
+  if (tab === 'tickets') renderTickets();
+  if (tab === 'org') loadDashboard();
+}
+document.querySelectorAll('nav button').forEach(b => b.onclick = () => show(b.dataset.tab));
+$('bmClose').onclick = closeBuy;
+$('bmContinue').onclick = startPayment;
+$('bmPhantom').onclick = payWithPhantom;
+$('ciVerify').onclick = verifyTicket;
+$('ciScan').onclick = toggleScan;
+$('dbLoad').onclick = loadDashboard;
+$('dbEvent').onchange = loadDashboard;
+$('ceCreate').onclick = createEvent;
+$('ceUseWallet').onclick = useWallet;
+$('restoreBtn').onclick = restoreTicket;
+window.addEventListener('hashchange', renderEvents);
+renderEvents();
+if (decodeShared()) { const ev = decodeShared(); setTimeout(() => openBuy(ev.id), 300); }
+</script>
+</body>
+</html>
